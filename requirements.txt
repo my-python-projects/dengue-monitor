@@ -1,0 +1,20 @@
+# API REST
+fastapi
+uvicorn
+
+# Banco de dados
+psycopg2-binary
+
+# Migration
+alembic
+
+# Análise e tratamento de dados
+pandas
+
+# Visualização de dados
+matplotlib
+seaborn
+plotly
+
+# Dashboard
+streamlit
