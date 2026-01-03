@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 
-class DengueCaseSchema(BaseModel):
-    ano: int
-    mes: int
-    estado: str
-    municipio: str | None
-    casos: int
-    obitos: int | None
+class MunicipioOut(BaseModel):
+    codigo: str
+    nome: str
 
-    class Config:
-        from_attributes = True
+
+class DengueCaseOut(BaseModel):
+    ano: int
+    uf: str
+    uf_nome: str
+    municipio: MunicipioOut
+    casos: int
