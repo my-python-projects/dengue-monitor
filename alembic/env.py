@@ -13,7 +13,7 @@ load_dotenv()
 # ======================================================
 # Importa Base dos models da aplicação
 # ======================================================
-from api.database import Base  # noqa
+from core.database import Base  # noqa
 
 # ======================================================
 # Configuração principal do Alembic

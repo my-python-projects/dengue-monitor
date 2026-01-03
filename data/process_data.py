@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 
 # Importa conexão e model
-from api.database import SessionLocal
-from api.models import DengueCase
+from core.database import SessionLocal
+from core.models import DengueCase
 
 from data.enums import (
     SEXO_MAP,
