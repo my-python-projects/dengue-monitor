@@ -5,7 +5,7 @@ from sqlalchemy import (
     Date,
     SmallInteger
 )
-from api.database import Base
+from core.database import Base
 
 
 class DengueCase(Base):
