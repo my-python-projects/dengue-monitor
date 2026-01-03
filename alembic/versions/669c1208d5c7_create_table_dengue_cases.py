@@ -23,40 +23,40 @@ def upgrade():
         "dengue_cases",
         sa.Column("id", sa.Integer, primary_key=True),
 
-        # Identificação do registro
-        sa.Column("tp_not", sa.String(5)),
-        sa.Column("id_agravo", sa.String(10)),
+        # Identificação
+        sa.Column("tp_not", sa.Integer, nullable=False),
+        sa.Column("id_agravo", sa.String(5), nullable=False),
 
         # Datas
-        sa.Column("dt_notific", sa.Date),
+        sa.Column("dt_notific", sa.Date, nullable=False),
         sa.Column("dt_sin_pri", sa.Date),
         sa.Column("dt_invest", sa.Date),
 
-        # Semana / Ano
-        sa.Column("sem_not", sa.String(6)),
-        sa.Column("sem_pri", sa.String(6)),
-        sa.Column("nu_ano", sa.String(4)),
+        # Semana / Ano epidemiológico
+        sa.Column("sem_not", sa.Integer),
+        sa.Column("sem_pri", sa.Integer),
+        sa.Column("nu_ano", sa.Integer, nullable=False),
 
-        # Localização notificação
-        sa.Column("sg_uf_not", sa.String(2)),
-        sa.Column("id_municip", sa.String(10)),
-        sa.Column("id_regiona", sa.String(10)),
-        sa.Column("id_unidade", sa.String(15)),
+        # Local da notificação
+        sa.Column("sg_uf_not", sa.Integer, nullable=False),
+        sa.Column("id_municip", sa.Integer, nullable=False),
+        sa.Column("id_regiona", sa.Integer),
+        sa.Column("id_unidade", sa.Integer),
 
         # Dados pessoais
-        sa.Column("ano_nasc", sa.String(4)),
+        sa.Column("ano_nasc", sa.Integer),
         sa.Column("idade", sa.Integer),
         sa.Column("idade_unidade", sa.String(10)),
         sa.Column("cs_sexo", sa.String(1)),
-        sa.Column("cs_gestant", sa.String(2)),
-        sa.Column("cs_raca", sa.String(2)),
-        sa.Column("cs_escol_n", sa.String(2)),
+        sa.Column("cs_gestant", sa.Integer),
+        sa.Column("cs_raca", sa.Integer),
+        sa.Column("cs_escol_n", sa.Integer),
 
         # Residência
-        sa.Column("sg_uf", sa.String(2)),
-        sa.Column("id_mn_resi", sa.String(10)),
-        sa.Column("id_rg_resi", sa.String(10)),
-        sa.Column("id_pais", sa.String(3))
+        sa.Column("sg_uf", sa.Integer),
+        sa.Column("id_mn_resi", sa.Integer),
+        sa.Column("id_rg_resi", sa.Integer),
+        sa.Column("id_pais", sa.Integer),
     )
 
     op.create_index(
@@ -64,6 +64,7 @@ def upgrade():
         "dengue_cases",
         ["nu_ano", "sg_uf_not"]
     )
+
 
 
 def downgrade():
