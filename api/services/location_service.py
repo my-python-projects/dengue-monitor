@@ -1,6 +1,7 @@
 from data.lookups.loader import load_ufs, load_municipios
 
-ufs_by_sigla, ufs_by_id = load_ufs()
+ufs_by_id, ufs_by_sigla  = load_ufs()
+# ufs_by_id, ufs_by_sigla, ufs_by_name  = load_ufs()
 municipios = load_municipios()
 
 
@@ -9,7 +10,7 @@ def translate_uf(sigla: str) -> dict | None:
     Retorna dados da UF a partir da sigla
     """
     uf = ufs_by_sigla.get(sigla.upper())
-    return str(uf["id"]) if uf else None
+    return uf["id"] if uf else None
 
 
 def translate_uf_by_code(codigo: str) -> dict | None:
