@@ -28,3 +28,12 @@ class AgeGroupCasesOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GenderCasesOut(BaseModel):
+    masculino: int
+    feminino: int
+    ignorado: int
+
+    class Config:
+        from_attributes = True
