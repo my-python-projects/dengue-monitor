@@ -1,13 +1,19 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-
 from core.database import get_db
-from api.schemas import DengueCaseOut, MonthlyCasesOut, AgeGroupCasesOut
+
+from api.schemas import (
+    DengueCaseOut, 
+    MonthlyCasesOut, 
+    AgeGroupCasesOut, 
+    GenderCasesOut
+)
 
 from core.repositories.dengue_repository import ( 
     get_cases_by_uf_and_year, 
     get_cases_by_month,
-    get_cases_by_age_group
+    get_cases_by_age_group,
+    get_cases_by_gender
 )
 
 from api.services.location_service import (
@@ -101,3 +107,26 @@ def list_cases_by_age_group(
         }
         for row in rows
     ]
+
+
+@router.get("/cases/by-gender", response_model=GenderCasesOut)
+def list_cases_by_gender(
+    uf: str | None = Query(None, min_length=2, max_length=2),
+    ano: int | None = Query(None, ge=2000, le=2030),
+    mes: int | None = Query(None, ge=1, le=12),
+    db: Session = Depends(get_db),
+):
+    uf_code = None
+    if uf:
+        uf_code = translate_uf(uf)
+        if uf_code is None:
+            # UF inválida → retornar zeros
+            return {"masculino": 0, "feminino": 0, "ignorado": 0}
+
+    row = get_cases_by_gender(db, uf_code, ano, mes)
+
+    return {
+        "masculino": int(row.masculino or 0),
+        "feminino": int(row.feminino or 0),
+        "ignorado": int(row.ignorado or 0),
+    }

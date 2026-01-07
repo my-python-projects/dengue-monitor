@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from core.models import DengueCase
-
 
 def get_cases_by_uf_and_year(
     db: Session,
@@ -30,7 +29,6 @@ def get_cases_by_uf_and_year(
         DengueCase.sg_uf_not,
         DengueCase.id_municip
     ).all()
-
 
 
 def get_cases_by_month(db: Session, uf_code: int, ano: int):
@@ -77,3 +75,25 @@ def get_cases_by_age_group(db: Session, uf_code: int | None = None, ano: int | N
         .order_by(age_group)
         .all()
     )
+
+
+def get_cases_by_gender(db: Session, uf_code: int | None = None, ano: int | None = None, mes: int | None = None):
+
+    stmt = db.query(DengueCase.cs_sexo)
+
+    if uf_code is not None:
+        stmt = stmt.filter(DengueCase.sg_uf_not == uf_code)
+    if ano is not None:
+        stmt = stmt.filter(DengueCase.nu_ano == ano)
+    if mes is not None:
+        stmt = stmt.filter(func.extract("month", DengueCase.dt_notific) == mes)
+
+    subq = stmt.subquery()
+
+    result = db.query(
+        func.sum(case((subq.c.cs_sexo == "M", 1), else_=0)).label("masculino"),
+        func.sum(case((subq.c.cs_sexo == "F", 1), else_=0)).label("feminino"),
+        func.sum(case((subq.c.cs_sexo.is_(None) | (subq.c.cs_sexo.notin_(["M", "F"])), 1), else_=0)).label("ignorado")
+    ).select_from(subq)
+
+    return result.first()
