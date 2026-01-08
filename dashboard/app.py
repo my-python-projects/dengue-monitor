@@ -4,19 +4,110 @@ from pathlib import Path as FilePath
 ROOT_DIR = FilePath(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-
-
 import streamlit as st
-from data.analysis import cases_by_month_df
-from visualization.plotly import plot_cases_by_month_plotly
+from dashboard.utils import load_ufs_for_select
 
+from data.analysis import (
+    cases_by_age_group_df, 
+    cases_by_gender_df, 
+    cases_top_municipios_df
+)
+
+from visualization.plotly import (
+    plot_cases_by_age_group_plotly, 
+    plot_cases_by_gender_plotly, 
+    plot_top_municipios_plotly
+)
 
 st.title("Dengue Monitor")
 
-uf = st.selectbox("UF", [31, 33, 35])
-ano = st.slider("Ano", 2015, 2025)
+def bordered_container():
+    return st.container(border=True)
 
-df = cases_by_month_df(uf, ano)
-fig = plot_cases_by_month_plotly(df)
 
-st.plotly_chart(fig, use_container_width=True)
+# Carrega UFs dinamicamente
+uf_options = load_ufs_for_select()
+uf_names, uf_ids = zip(*uf_options)  # separa nomes (exibição) e IDs (valor)
+
+# Selectbox com opções dinâmicas
+selected_index = st.selectbox("UF", range(len(uf_names)), format_func=lambda x: uf_names[x])
+uf = uf_ids[selected_index]  # ← valor inteiro do ID da UF
+
+ano = st.slider("Ano", 2024, 2025)
+
+# Carregar dados
+df_age = cases_by_age_group_df(uf=uf, ano=ano)
+df_gender = cases_by_gender_df(uf=uf, ano=ano)
+df_top_municipios = cases_top_municipios_df(uf=uf, ano=ano)
+
+# Criar duas colunas
+col1, col2 = st.columns(2)
+
+# Gráfico 1: Faixa etária (na coluna 1)
+with col1:
+    with bordered_container():
+
+        # ✅ Selectbox para filtrar por sexo
+        sexo_opcoes = {
+            "Todos": None,
+            "Masculino": "M",
+            "Feminino": "F",
+            "Ignorado": "I"
+        }
+        sexo_selecionado = st.selectbox(
+            "Filtrar por sexo",
+            options=list(sexo_opcoes.keys()),
+            key="faixa_etaria_sexo"
+        )
+        sexo_valor = sexo_opcoes[sexo_selecionado]
+
+        df_age = cases_by_age_group_df(uf=uf, ano=ano, sexo=sexo_valor)
+
+
+        fig_age = plot_cases_by_age_group_plotly(df_age)
+        fig_age.update_layout(
+            margin=dict(l=20, r=20, t=40, b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        st.plotly_chart(fig_age, use_container_width=True)
+
+# Gráfico 2: Gênero (na coluna 2)
+with col2:
+
+    with bordered_container():
+        # st.subheader("Distribuição por Gênero")
+
+        idade_range = st.slider(
+            "Filtrar por idade",
+            min_value=0,
+            max_value=100,
+            value=(0, 100),
+            key="idade_genero"
+        )
+
+        idade_min, idade_max = idade_range
+
+        df_gender_filtered = cases_by_gender_df(
+            uf=uf,
+            ano=ano,
+            idade_min=idade_min,
+            idade_max=idade_max
+        )
+
+        fig_gender = plot_cases_by_gender_plotly(df_gender_filtered)
+
+        fig_gender.update_layout(
+            margin=dict(l=20, r=20, t=40, b=5),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+
+        st.plotly_chart(fig_gender, use_container_width=True)
+
+
+col3, col4 = st.columns(2)
+
+with col3:
+    fig_top = plot_top_municipios_plotly(df_top_municipios)
+    st.plotly_chart(fig_top, use_container_width=True)
