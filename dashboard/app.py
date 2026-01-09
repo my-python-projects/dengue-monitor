@@ -19,6 +19,10 @@ from visualization.plotly import (
     plot_top_municipios_plotly
 )
 
+from data.analysis import cases_heatmap_month_age_df
+from visualization.plotly import plot_heatmap_month_age, prepare_heatmap_df
+
+
 st.title("Dengue Monitor")
 
 def bordered_container():
@@ -47,7 +51,7 @@ col1, col2 = st.columns(2)
 with col1:
     with bordered_container():
 
-        # ✅ Selectbox para filtrar por sexo
+        # Selectbox para filtrar por sexo
         sexo_opcoes = {
             "Todos": None,
             "Masculino": "M",
@@ -109,5 +113,15 @@ with col2:
 col3, col4 = st.columns(2)
 
 with col3:
-    fig_top = plot_top_municipios_plotly(df_top_municipios)
-    st.plotly_chart(fig_top, use_container_width=True)
+    with bordered_container():
+        fig_top = plot_top_municipios_plotly(df_top_municipios)
+        st.plotly_chart(fig_top, use_container_width=True)
+
+with col4:
+    with bordered_container():
+        df_heat = cases_heatmap_month_age_df(uf=uf, ano=ano)
+        df_pivot = prepare_heatmap_df(df_heat)
+
+        fig_heat = plot_heatmap_month_age(df_pivot)
+        st.plotly_chart(fig_heat, use_container_width=True)
+
