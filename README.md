@@ -1,0 +1,311 @@
+# 🦟 Dengue Monitor
+
+**Dengue Monitor** is a **data engineering and analytics** project focused on the epidemiological analysis of dengue cases in Brazil, using **real-scale data (hundreds of thousands of records)** and interactive dashboards.
+
+The goal of the project is to demonstrate **technical capability**, **professional best practices**, and **data-driven decision making**, with a strong emphasis on **performance**, **data engineering**, and **analytical visualization**.
+
+---
+
+## 🎯 Objective
+
+The **Dengue Monitor** aims to consolidate large volumes of dengue notification data, apply **efficient database-level aggregations**, and expose **dashboards and analytical endpoints** for:
+
+* Temporal analysis (epidemiological year)
+* Geographic analysis (state and municipality)
+* Demographic analysis (age range and gender)
+
+The project was designed to:
+
+* Scale to **hundreds of thousands of records**
+* Minimize repeated database queries
+* Demonstrate proficiency in **analytical SQL**, **data modeling**, **caching**, **performance optimization**, and **analytical APIs**
+
+---
+
+## 🏗️ Overall Architecture
+
+```text
+┌──────────────┐
+│   CSV / API  │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────┐
+│ Database (PostgreSQL)    │
+│ - dengue_cases           │
+│ - materialized views     │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│        Data Layer        │
+│ Repositories + Cache     │
+└──────┬───────────────────┘
+       │
+       ├──────────────┐
+       ▼              ▼
+┌──────────────┐ ┌──────────────────────┐
+│   FastAPI    │ │   Dashboard (UI)     │
+│ Analytics API│ │ Streamlit + Plotly   │
+└──────────────┘ └──────────────────────┘
+```
+
+---
+
+## 🧱 Technology Stack
+
+### Backend / Data
+
+* **Python 3.12+**
+* **SQLAlchemy**
+* **Alembic** (migrations)
+* **PostgreSQL** (analytical queries and aggregations)
+
+### API
+
+* **FastAPI**
+* **Pydantic** (schemas)
+* **Uvicorn**
+
+The API exposes **analytical endpoints** consumed by the dashboard and allows future integration with other services.
+
+### Visualization
+
+* **Streamlit**
+* **Plotly**
+
+### Data Engineering
+
+* Materialized Views
+* Optimized indexes
+* In-memory caching
+* Clear separation between **Data Layer**, **API**, and **UI**
+
+---
+
+## 🗂️ Project Structure
+
+```text
+dengue-monitor/
+│
+├── dashboard/
+│   ├── app.py          # Streamlit app
+│   └── utils.py        # UI helpers
+│
+├── data/
+│   ├── lookups/
+│   │   ├── loader.py
+│   │   ├── municipios.json
+│   │   └── ufs.json
+│   │
+│   ├── transformers/
+│   │   └── age.py
+│   │
+│   ├── analysis.py
+│   ├── enums.py
+│   ├── process_data.py
+│   │
+│   └── visualization/
+│       ├── matplotlib.py
+│       ├── plotly.py
+│       └── seaborn.py
+│
+├── core/
+│   ├── repositories/
+│   │   └── dengue_repository.py
+│   │
+│   ├── database.py
+│   └── models.py
+│
+├── api/
+│   ├── services/
+│   │   └── location_service.py
+│   ├── routes.py
+│   └── schemas.py
+│
+├── alembic/
+│   └── versions/       # Migrations
+│
+├── main.py             # FastAPI entrypoint
+├── .env.example
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 🗄️ Database
+
+### Main Table
+
+**dengue_cases**
+
+Stores raw dengue notification records.
+
+Key columns:
+
+* `nu_ano` — epidemiological year
+* `sg_uf_not` — reporting state (UF)
+* `id_municip` — municipality
+* `idade` — patient age
+* `cs_sexo` — gender (M, F, I)
+
+### Materialized Views
+
+The project relies on **materialized views** to avoid expensive real-time aggregations.
+
+Example:
+
+```sql
+CREATE MATERIALIZED VIEW dengue_by_age_gender AS
+SELECT
+    sg_uf_not,
+    nu_ano,
+    FLOOR(idade / 10) * 10 AS faixa_inicio,
+    cs_sexo,
+    COUNT(*) AS casos
+FROM dengue_cases
+WHERE idade IS NOT NULL
+GROUP BY sg_uf_not, nu_ano, faixa_inicio, cs_sexo;
+```
+
+✔️ Fast queries
+✔️ Reduced database load
+✔️ Ideal for dashboards and analytical APIs
+
+---
+
+## ⚡ Performance & Best Practices
+
+* Streamlit data caching
+* Database-level aggregations
+* Strategic indexing
+* Avoids excessive database calls
+* Clear separation between **UI**, **API**, and **Data Layer**
+
+---
+
+## 🔁 Migrations (Alembic)
+
+Adopted standard:
+
+* `revision`: random ID generated by Alembic
+* `down_revision`: explicit dependency reference
+* Descriptive migration file names
+
+Example:
+
+```bash
+alembic revision -m "create materialized view dengue_by_age_gender"
+```
+
+This approach ensures:
+
+* Linear migration history
+* Schema reproducibility
+* Easy rollback
+
+---
+
+## 🚀 How to Run
+
+### 1️⃣ Create virtual environment
+
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\Activate.ps1 # Windows
+```
+
+### 2️⃣ Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3️⃣ Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Set the database environment variables.
+
+### 4️⃣ Run migrations
+
+```bash
+alembic upgrade head
+```
+
+### 5️⃣ Download the dengue CSV
+
+Access the official portal:
+
+[https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue](https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue)
+
+* Download the CSV file
+* Create the directory:
+
+```text
+data/raw/
+```
+
+* Place the CSV file inside this folder
+
+> This directory is intentionally excluded from version control.
+
+### 6️⃣ Process and load the data
+
+From the **data/** directory:
+
+```bash
+python process_data.py
+```
+
+This script:
+
+* Reads the raw CSV
+* Applies sampling logic (100 records / month / UF)
+* Normalizes fields
+* Inserts data into PostgreSQL
+
+### 7️⃣ Start the FastAPI server
+
+```bash
+uvicorn main:app --reload
+```
+
+The API exposes analytical endpoints consumed by the dashboard.
+
+### 8️⃣ Start the dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+---
+
+## 🤝 Contribution
+
+Contributions are welcome!
+
+1. Fork the project
+2. Create a branch (`feat/my-feature`)
+3. Commit following **Conventional Commits**
+4. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is distributed under the MIT License.
+
+---
+
+## 👨‍💻 Author
+
+Project developed by **Jefferson** as an **advanced study and technical portfolio** in:
+
+* Data Engineering
+* Epidemiological Analysis
+* Analytical Visualization
