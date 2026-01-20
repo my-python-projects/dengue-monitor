@@ -40,8 +40,6 @@ uf = uf_ids[selected_index]  # ← valor inteiro do ID da UF
 ano = st.slider("Ano", 2024, 2025)
 
 # Carregar dados
-df_age = cases_by_age_group_df(uf=uf, ano=ano)
-df_gender = cases_by_gender_df(uf=uf, ano=ano)
 df_top_municipios = cases_top_municipios_df(uf=uf, ano=ano)
 
 # Criar duas colunas
@@ -78,19 +76,26 @@ with col1:
 
 # Gráfico 2: Gênero (na coluna 2)
 with col2:
-
     with bordered_container():
-        # st.subheader("Distribuição por Gênero")
-
-        idade_range = st.slider(
-            "Filtrar por idade",
-            min_value=0,
-            max_value=100,
-            value=(0, 100),
-            key="idade_genero"
+        # Definir as faixas etárias pré-agrupadas
+        faixas_etarias = [
+            "0–9", "10–19", "20–29", "30–39", "40–49",
+            "50–59", "60–69", "70–79", "80–89", "90+"
+        ]
+        
+        faixa_selecionada = st.selectbox(
+            "Selecione a faixa etária",
+            options=faixas_etarias,
+            key="faixa_etaria_genero"
         )
 
-        idade_min, idade_max = idade_range
+        # Converter a faixa selecionada em idade_min e idade_max
+        if faixa_selecionada == "90+":
+            idade_min, idade_max = 90, 150  # valor alto o suficiente
+        else:
+            inicio = int(faixa_selecionada.split("–")[0])
+            fim = int(faixa_selecionada.split("–")[1])
+            idade_min, idade_max = inicio, fim
 
         df_gender_filtered = cases_by_gender_df(
             uf=uf,
@@ -100,13 +105,11 @@ with col2:
         )
 
         fig_gender = plot_cases_by_gender_plotly(df_gender_filtered)
-
         fig_gender.update_layout(
             margin=dict(l=20, r=20, t=40, b=5),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)"
         )
-
         st.plotly_chart(fig_gender, use_container_width=True)
 
 
