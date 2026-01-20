@@ -237,29 +237,70 @@ Set the database environment variables.
 alembic upgrade head
 ```
 
-### 5️⃣ Download the dengue CSV
+### 5️⃣ Download the dengue CSV data
 
-Access the official portal:
-
-[https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue](https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue)
-
-* Download the CSV file
-* Create the directory:
+The project expects **raw dengue CSV files** to be placed in the following directory:
 
 ```text
 data/raw/
 ```
 
-* Place the CSV file inside this folder
-
 > This directory is intentionally excluded from version control.
+
+You can obtain the CSV files using **one of the following options**:
+
+---
+
+### 🔹 Option 1 — Google Drive (recommended for quick setup)
+
+A curated set of CSV files is available on Google Drive:
+
+👉 [https://drive.google.com/drive/folders/1GY_LRvW4pQ0isSVTN_LyWAji-ixbTdw6?usp=sharing](https://drive.google.com/drive/folders/1GY_LRvW4pQ0isSVTN_LyWAji-ixbTdw6?usp=sharing)
+
+Steps:
+
+1. Download one or more CSV files from the Drive folder
+2. Create the directory if it does not exist:
+
+   ```text
+   data/raw/
+   ```
+3. Place the downloaded CSV files inside `data/raw/`
+
+---
+
+### 🔹 Option 2 — Official Brazilian Health Open Data Portal (DATASUS)
+
+You can also download the data directly from the official source:
+
+👉 [https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue](https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue)
+
+Steps:
+
+1. Access the dataset page
+2. Download the desired CSV files (by year or period)
+3. Place the CSV files inside:
+
+   ```text
+   data/raw/
+   ```
+
+---
+
+📌 **Notes**:
+
+* The ingestion pipeline supports **multiple CSV files** inside `data/raw/`
+* Files are processed sequentially
+* Only the required columns are loaded into the database
+* The data is normalized before insertion
+
 
 ### 6️⃣ Process and load the data
 
 From the **data/** directory:
 
 ```bash
-python process_data.py
+python -m data.process_data
 ```
 
 This script:
