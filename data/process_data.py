@@ -1,13 +1,15 @@
-import os
+from pathlib import Path
+import re
+
 from collections import defaultdict
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 
-# Importações locais
 from core.database import SessionLocal
 from core.models import DengueCase
 from data.transformers.age import parse_idade
+
 
 load_dotenv()
 
@@ -77,8 +79,9 @@ def normalize_data(records: list[dict]) -> pd.DataFrame:
         "tp_not", "sem_not", "sem_pri", "nu_ano", "sg_uf_not",
         "id_municip", "id_regiona", "ano_nasc", "idade",
         "cs_gestant", "cs_raca", "cs_escol_n", "sg_uf",
-        "id_mn_resi", "id_rg_resi", "id_pais"
+        "id_mn_resi", "id_rg_resi", "id_pais", "id_unidade"
     ]
+
     for col in integer_columns:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
@@ -111,8 +114,10 @@ def save_to_database(df: pd.DataFrame) -> int:
         session.add_all(cases)
         session.commit()
         return len(cases)
-    except IntegrityError:
+    except IntegrityError as e:
         session.rollback()
+        print("❌ Erro de integridade ao inserir dados:")
+        print(e.orig)  # <-- MOSTRA O ERRO REAL DO BANCO
         raise
     finally:
         session.close()
@@ -123,6 +128,9 @@ def run_pipeline(csv_path: str, max_per_group: int = 100):
     Lê o CSV uma única vez, mantendo no máximo `max_per_group` registros
     por (sg_uf_not, nu_ano, mes).
     """
+
+    MAX_BIGINT = 9_223_372_036_854_775_807
+    MIN_BIGINT = -9_223_372_036_854_775_807
     
     # Buffer por grupo: (uf, ano, mes) → lista de registros (máx. 100)
     sampled_groups = defaultdict(list)
@@ -142,16 +150,51 @@ def run_pipeline(csv_path: str, max_per_group: int = 100):
         chunk["nu_ano"] = pd.to_numeric(chunk["nu_ano"], errors="coerce").astype("Int64")
         chunk["mes"] = chunk["mes"].astype("Int64")
 
-        # Iterar sobre registros como dicionários (mais rápido que iterrows)
+        bigint_cols = {
+            "tp_not", "sem_not", "sem_pri", "nu_ano", "sg_uf_not",
+            "id_municip", "id_regiona", "ano_nasc", "idade",
+            "cs_gestant", "cs_raca", "cs_escol_n", "sg_uf",
+            "id_mn_resi", "id_rg_resi", "id_pais", "id_unidade"
+        }
+
         for record in chunk.to_dict(orient="records"):
+            # Primeiro: tentar extrair chave do grupo
             try:
                 uf = int(record["sg_uf_not"])
                 ano = int(record["nu_ano"])
                 mes = int(record["mes"])
                 key = (uf, ano, mes)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, KeyError):
                 continue
 
+            # Segundo: validar se todos os campos bigint estão dentro do intervalo
+            skip_record = False
+            for col in bigint_cols:
+                val = record.get(col)
+                if val is not None and pd.notna(val):
+                    try:
+                        # Tenta converter para int diretamente (evita perda de precisão com float)
+                        if isinstance(val, str):
+                            if val.strip() == "":
+                                continue  # ou skip_record = True
+                            num_val = int(val)
+                        elif pd.isna(val):
+                            continue
+                        else:
+                            # Pode ser numpy.int64, pandas.Int64, etc.
+                            num_val = int(val)
+                        
+                        if not (MIN_BIGINT <= num_val <= MAX_BIGINT):
+                            skip_record = True
+                            break
+                    except (ValueError, TypeError, OverflowError):
+                        skip_record = True
+                        break
+
+            if skip_record:
+                continue
+
+            # Terceiro: só adicionar se ainda não atingiu o limite
             if len(sampled_groups[key]) < max_per_group:
                 sampled_groups[key].append(record)
 
@@ -172,5 +215,40 @@ def run_pipeline(csv_path: str, max_per_group: int = 100):
     print(f"TOTAL inserido no banco: {inserted}")
 
 
+
+def _get_dengue_csv_files(raw_dir: str = "data/raw") -> list[Path]:
+    """
+    Retorna os arquivos DENGBR*.csv ordenados por ano.
+    Ex: DENGBR24.csv -> DENGBR25.csv
+    """
+    path = Path(raw_dir)
+
+    files = []
+    pattern = re.compile(r"DENGBR(\d{2})\.csv$", re.IGNORECASE)
+
+    for file in path.iterdir():
+        if file.is_file():
+            match = pattern.match(file.name)
+            if match:
+                year = int(match.group(1))
+                files.append((year, file))
+
+    # Ordena pelo ano (24, 25, 26...)
+    files.sort(key=lambda x: x[0])
+
+    # Retorna apenas os Paths
+    return [f[1] for f in files]
+
+
 if __name__ == "__main__":
-    run_pipeline("data/raw/DENGBR25.csv")
+    # run_pipeline("data/raw/DENGBR25.csv")
+
+    csv_files = _get_dengue_csv_files("data/raw")
+
+    if not csv_files:
+        print("Nenhum arquivo DENGBR*.csv encontrado em data/raw")
+        exit(1)
+
+    for csv_path in csv_files:
+        print(f"\nProcessando arquivo: {csv_path.name}")
+        run_pipeline(str(csv_path))
