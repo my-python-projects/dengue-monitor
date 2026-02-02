@@ -1,0 +1,4 @@
+REFRESH MATERIALIZED VIEW mv_top_municipios;
+REFRESH MATERIALIZED VIEW mv_cases_heatmap_month_age;
+REFRESH MATERIALIZED VIEW mv_cases_by_age_group;
+REFRESH MATERIALIZED VIEW mv_cases_by_gender_age_group;
