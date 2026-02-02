@@ -310,6 +310,47 @@ This script:
 * Normalizes fields
 * Inserts data into PostgreSQL
 
+
+### 6️⃣.1️⃣ Refresh Materialized Views (required)
+
+After loading the data into PostgreSQL, you must refresh the materialized views used by the analytical queries and dashboards.
+
+You can do this in one of the following ways:
+
+---
+
+### 🔹 Option 1 — Run refresh commands manually
+
+Connect to your PostgreSQL database and execute:
+
+```sql
+REFRESH MATERIALIZED VIEW mv_top_municipios;
+REFRESH MATERIALIZED VIEW mv_cases_heatmap_month_age;
+REFRESH MATERIALIZED VIEW mv_cases_by_age_group;
+REFRESH MATERIALIZED VIEW mv_cases_by_gender_age_group;
+```
+
+---
+
+### 🔹 Option 2 — Run the provided SQL script (recommended)
+
+The project includes a helper script that refreshes all materialized views at once.
+
+From the project root, run:
+
+```bash
+psql -d <your_database_name> -f scripts/database/refresh_materialized_views.sql
+```
+
+---
+
+📌 **Notes**:
+
+* This step is required every time new data is loaded
+* Materialized views significantly improve dashboard performance
+* The script is safe to run multiple times
+
+
 ### 7️⃣ Start the FastAPI server
 
 ```bash
