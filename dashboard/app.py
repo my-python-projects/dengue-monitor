@@ -72,7 +72,7 @@ with col1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)"
         )
-        st.plotly_chart(fig_age, use_container_width=True)
+        st.plotly_chart(fig_age, width="stretch")
 
 # Gráfico 2: Gênero (na coluna 2)
 with col2:
@@ -110,7 +110,7 @@ with col2:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)"
         )
-        st.plotly_chart(fig_gender, use_container_width=True)
+        st.plotly_chart(fig_gender, width="stretch")
 
 
 col3, col4 = st.columns(2)
@@ -118,7 +118,7 @@ col3, col4 = st.columns(2)
 with col3:
     with bordered_container():
         fig_top = plot_top_municipios_plotly(df_top_municipios)
-        st.plotly_chart(fig_top, use_container_width=True)
+        st.plotly_chart(fig_top, width="stretch")
 
 with col4:
     with bordered_container():
@@ -126,5 +126,5 @@ with col4:
         df_pivot = prepare_heatmap_df(df_heat)
 
         fig_heat = plot_heatmap_month_age(df_pivot)
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, width="stretch")
 

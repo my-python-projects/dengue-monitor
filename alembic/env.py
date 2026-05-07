@@ -2,18 +2,13 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 import os
-from dotenv import load_dotenv
 from urllib.parse import quote_plus
-
-# ======================================================
-# Carrega variáveis de ambiente
-# ======================================================
-load_dotenv()
+from infra.config import Settings
 
 # ======================================================
 # Importa Base dos models da aplicação
 # ======================================================
-from core.database import Base  # noqa
+from infra.database import Base  # noqa
 
 # ======================================================
 # Configuração principal do Alembic
@@ -34,22 +29,11 @@ target_metadata = Base.metadata
 # ======================================================
 # Monta DATABASE_URL a partir do .env (BLINDADO)
 # ======================================================
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-
-DB_USER = quote_plus(os.getenv("DB_USER"))
-DB_PASSWORD = quote_plus(os.getenv("DB_PASSWORD"))
-
-DATABASE_URL = (
-    f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}"
-    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
+DB_USER = quote_plus(Settings.DB_USER)
+DB_PASSWORD = quote_plus(Settings.DB_PASSWORD)
 
 # Sobrescreve alembic.ini
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
-
-# print("DATABASE_URL:", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", Settings.DATABASE_URL)
 
 
 # ======================================================

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import text
-from core.database import engine
+from infra.database import engine
 from data.lookups.loader import load_municipios
 
 @st.cache_data(ttl=600)

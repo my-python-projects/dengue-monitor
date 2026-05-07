@@ -4,7 +4,7 @@ from sqlalchemy import (
     String,
     Date
 )
-from core.database import Base
+from infra.database import Base
 
 
 class DengueCase(Base):

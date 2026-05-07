@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from core.database import get_db
+from sqlalchemy.exc import SQLAlchemyError
+from infra.database import get_db
+import logging
 
 from api.schemas import (
     DengueCaseOut, 
@@ -23,22 +25,53 @@ from api.services.location_service import (
 )
 
 router = APIRouter(prefix="/dengue", tags=["Dengue"])
+logger = logging.getLogger(__name__)
 
 @router.get("/cases", response_model=list[DengueCaseOut])
 def list_cases(
     uf: str = Query(..., min_length=2, max_length=2),
-    ano: int = Query(..., ge=2025),
+    ano: int = Query(..., ge=2024),
     mes: int | None = Query(None, ge=1, le=12),  # opcional
     db: Session = Depends(get_db),
 ):
 
+    logger.info(
+        "Iniciando consulta de casos de dengue",
+        extra={"uf": uf, "ano": ano, "mes": mes}
+    )
+
+    uf_code = _convert_uf_to_code(uf)
+    
+    try:
+        rows = get_cases_by_uf_and_year(db, uf_code, ano, mes)
+
+    except SQLAlchemyError:
+        logger.exception(
+            "Erro ao consultar banco de dados",
+            extra={"uf": uf, "ano": ano, "mes": mes}
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao consultar os dados"
+        )
+
+    result = __map_cases(uf, rows)
+
+    return result
+
+def _convert_uf_to_code(uf):
     uf_code = translate_uf(uf)  
 
     if not uf_code:
-        return []
+        logger.warning("UF inválida informada", extra={"uf": uf})
+        raise HTTPException(
+            status_code=400,
+            detail="UF inválida"
+        )
+        
+    return uf_code
 
-    rows = get_cases_by_uf_and_year(db, uf_code, ano, mes)
-
+def __map_cases(uf, rows):
     result = []
 
     for row in rows:
@@ -58,7 +91,12 @@ def list_cases(
             },
             "casos": row.casos
         })
-
+    
+    logger.info(
+        "Consulta realizada com sucesso",
+        extra={"total_registros": len(result)}
+    )
+    
     return result
 
 
@@ -89,17 +127,43 @@ def format_age_group(grupo: int) -> str:
 
 @router.get("/cases/by-age-group", response_model=list[AgeGroupCasesOut])
 def list_cases_by_age_group(
-    uf: str | None = Query(None, min_length=2, max_length=2),
-    ano: int | None = Query(None, ge=2000, le=2030),
-    mes: int | None = Query(None, ge=1, le=12),
+    uf:  str = Query(..., min_length=2, max_length=2),
+    ano: int = Query(..., ge=2000, le=2030),
+    mes: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db),
 ):
-    uf_code = translate_uf(uf) if uf else None
-    if uf and uf_code is None:
-        return []
+    
+    logger.info(
+        "Consultando casos por faixa etária",
+        extra={"uf": uf, "ano": ano, "mes": mes}
+    )
 
-    rows = get_cases_by_age_group(db, uf_code, ano, mes)
+    uf_code = _convert_uf_to_code(uf)
 
+    try:
+        rows = get_cases_by_age_group(db, uf_code, ano, mes)
+    
+    except SQLAlchemyError:
+        logger.exception(
+            "Erro ao consultar banco de dados",
+            extra={"uf": uf, "ano": ano, "mes": mes}
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao consultar os dados"
+        )
+    
+    result = _map_age_group(rows)
+
+    logger.info(
+        "Consulta concluída",
+        extra={"total_registros": len(result)}
+    )
+
+    return result
+
+def _map_age_group(rows):
     return [
         {
             "faixa_etaria": format_age_group(row.grupo),

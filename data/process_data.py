@@ -6,12 +6,9 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 
-from core.database import SessionLocal
+from infra.database import SessionLocal
 from core.models import DengueCase
 from data.transformers.age import parse_idade
-
-
-load_dotenv()
 
 '''
 
