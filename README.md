@@ -1,393 +1,747 @@
 # 🦟 Dengue Monitor
 
-**Dengue Monitor** is a **data engineering and analytics** project focused on the epidemiological analysis of dengue cases in Brazil, using **real-scale data (hundreds of thousands of records)** and interactive dashboards.
+**Dengue Monitor** is a data engineering and analytics project for analyzing dengue notification data in Brazil.
 
-The goal of the project is to demonstrate **technical capability**, **professional best practices**, and **data-driven decision making**, with a strong emphasis on **performance**, **data engineering**, and **analytical visualization**.
+The project loads raw dengue CSV files, normalizes the data into PostgreSQL, creates materialized views for analytical queries, exposes a FastAPI API, and provides an interactive Streamlit dashboard for exploring epidemiological, geographic, and demographic patterns.
 
----
+The main goal is to demonstrate practical skills in:
 
-## 🎯 Objective
-
-The **Dengue Monitor** aims to consolidate large volumes of dengue notification data, apply **efficient database-level aggregations**, and expose **dashboards and analytical endpoints** for:
-
-* Temporal analysis (epidemiological year)
-* Geographic analysis (state and municipality)
-* Demographic analysis (age range and gender)
-
-The project was designed to:
-
-* Scale to **hundreds of thousands of records**
-* Minimize repeated database queries
-* Demonstrate proficiency in **analytical SQL**, **data modeling**, **caching**, **performance optimization**, and **analytical APIs**
+- Python data processing
+- PostgreSQL data modeling
+- SQLAlchemy and Alembic migrations
+- Analytical API development with FastAPI
+- Dashboard development with Streamlit and Plotly
+- Query optimization with materialized views
+- Reproducible local project setup
 
 ---
 
-## 🏗️ Overall Architecture
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Database](#database)
+- [Raw Data and Sampling](#raw-data-and-sampling)
+- [API Examples](#api-examples)
+- [Dashboard](#dashboard)
+- [Screenshots](#screenshots)
+- [Useful Commands](#useful-commands)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [License](#license)
+- [Author](#author)
+
+---
+
+## Project Overview
+
+Dengue Monitor consolidates dengue notification records and allows users to analyze cases by:
+
+- Epidemiological year
+- State (`UF`)
+- Municipality
+- Month
+- Age group
+- Gender
+
+The project is designed to keep local execution lightweight while still working with real public health datasets. By default, the ingestion pipeline applies stratified sampling before inserting records into PostgreSQL. See [Raw Data and Sampling](#raw-data-and-sampling) for details.
+
+---
+
+## Architecture
 
 ```text
-┌──────────────┐
-│   CSV / API  │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────────┐
-│ Database (PostgreSQL)    │
-│ - dengue_cases           │
-│ - materialized views     │
-└──────┬───────────────────┘
-       │
-       ▼
-┌──────────────────────────┐
-│        Data Layer        │
-│ Repositories + Cache     │
-└──────┬───────────────────┘
-       │
-       ├──────────────┐
-       ▼              ▼
-┌──────────────┐ ┌──────────────────────┐
-│   FastAPI    │ │   Dashboard (UI)     │
-│ Analytics API│ │ Streamlit + Plotly   │
-└──────────────┘ └──────────────────────┘
+┌──────────────────────┐
+│ Raw Dengue CSV Files │
+│ data/raw/DENGBR*.csv │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ Data Processing      │
+│ data/process_data.py │
+│ - chunked reading    │
+│ - sampling           │
+│ - normalization      │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│ PostgreSQL                   │
+│ - dengue_cases               │
+│ - materialized views         │
+└──────────┬───────────────────┘
+           │
+           ├─────────────────────────┐
+           ▼                         ▼
+┌──────────────────────┐   ┌────────────────────────┐
+│ FastAPI              │   │ Streamlit Dashboard     │
+│ api/routes.py        │   │ dashboard/app.py        │
+│ Analytical endpoints │   │ Plotly visualizations   │
+└──────────────────────┘   └────────────────────────┘
 ```
 
 ---
 
-## 🧱 Technology Stack
+## Technology Stack
 
-### Backend / Data
+### Backend and Data
 
-* **Python 3.12+**
-* **SQLAlchemy**
-* **Alembic** (migrations)
-* **PostgreSQL** (analytical queries and aggregations)
+- Python 3.12+
+- PostgreSQL
+- SQLAlchemy
+- Alembic
+- Pandas
 
 ### API
 
-* **FastAPI**
-* **Pydantic** (schemas)
-* **Uvicorn**
+- FastAPI
+- Pydantic
+- Uvicorn
 
-The API exposes **analytical endpoints** consumed by the dashboard and allows future integration with other services.
+### Dashboard and Visualization
 
-### Visualization
+- Streamlit
+- Plotly
+- Matplotlib
+- Seaborn
 
-* **Streamlit**
-* **Plotly**
+### Database Optimization
 
-### Data Engineering
-
-* Materialized Views
-* Optimized indexes
-* In-memory caching
-* Clear separation between **Data Layer**, **API**, and **UI**
+- Materialized views
+- Indexes
+- Aggregated analytical queries
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```text
 dengue-monitor/
 │
-├── dashboard/
-│   ├── app.py          # Streamlit app
-│   └── utils.py        # UI helpers
-│
-├── data/
-│   ├── lookups/
-│   │   ├── loader.py
-│   │   ├── municipios.json
-│   │   └── ufs.json
-│   │
-│   ├── transformers/
-│   │   └── age.py
-│   │
-│   ├── analysis.py
-│   ├── enums.py
-│   ├── process_data.py
-│   │
-│   └── visualization/
-│       ├── matplotlib.py
-│       ├── plotly.py
-│       └── seaborn.py
-│
-├── core/
-│   ├── repositories/
-│   │   └── dengue_repository.py
-│   │
-│   ├── database.py
-│   └── models.py
+├── alembic/
+│   ├── versions/                    # Database migrations
+│   ├── env.py
+│   └── script.py.mako
 │
 ├── api/
 │   ├── services/
-│   │   └── location_service.py
-│   ├── routes.py
-│   └── schemas.py
+│   │   └── location_service.py       # UF and municipality translation helpers
+│   ├── routes.py                     # FastAPI routes
+│   ├── schemas.py                    # Pydantic response schemas
+│   └── __init__.py
 │
-├── alembic/
-│   └── versions/       # Migrations
+├── core/
+│   ├── repositories/
+│   │   └── dengue_repository.py      # Database query functions
+│   ├── models.py                     # SQLAlchemy models
+│   └── __init__.py
 │
-├── main.py             # FastAPI entrypoint
+├── dashboard/
+│   ├── app.py                        # Streamlit dashboard entrypoint
+│   └── utils.py                      # Dashboard helper functions
+│
+├── data/
+│   ├── lookups/
+│   │   ├── loader.py                 # Lookup loader helpers
+│   │   ├── municipios.json           # Municipality lookup data
+│   │   └── ufs.json                  # Brazilian states lookup data
+│   ├── raw/                          # Raw CSV files, not versioned
+│   ├── transformers/
+│   │   └── age.py                    # Age parsing and normalization
+│   ├── analysis.py                   # Dashboard analytical queries
+│   ├── enums.py
+│   ├── process_data.py               # CSV ingestion and normalization pipeline
+│   └── __init__.py
+│
+├── infra/
+│   ├── config.py                     # Environment-based settings
+│   ├── database.py                   # SQLAlchemy engine/session setup
+│   ├── formatter.py                  # Logging formatter
+│   └── logging.py                    # Logging setup
+│
+├── scripts/
+│   └── database/
+│       └── refresh_materialized_views.sql
+│
+├── visualization/
+│   ├── matplotlib.py
+│   ├── plotly.py
+│   ├── seaborn.py
+│   └── __init__.py
+│
+├── main.py                           # FastAPI application entrypoint
+├── alembic.ini
 ├── .env.example
+├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
 
----
-
-## 🗄️ Database
-
-### Main Table
-
-**dengue_cases**
-
-Stores raw dengue notification records.
-
-Key columns:
-
-* `nu_ano` — epidemiological year
-* `sg_uf_not` — reporting state (UF)
-* `id_municip` — municipality
-* `idade` — patient age
-* `cs_sexo` — gender (M, F, I)
-
-### Materialized Views
-
-The project relies on **materialized views** to avoid expensive real-time aggregations.
-
-Example:
-
-```sql
-CREATE MATERIALIZED VIEW dengue_by_age_gender AS
-SELECT
-    sg_uf_not,
-    nu_ano,
-    FLOOR(idade / 10) * 10 AS faixa_inicio,
-    cs_sexo,
-    COUNT(*) AS casos
-FROM dengue_cases
-WHERE idade IS NOT NULL
-GROUP BY sg_uf_not, nu_ano, faixa_inicio, cs_sexo;
-```
-
-✔️ Fast queries
-✔️ Reduced database load
-✔️ Ideal for dashboards and analytical APIs
+> Local-only folders and files such as `venv/`, `.env`, `logs/`, `__pycache__/`, and raw CSV files should not be committed to version control.
 
 ---
 
-## ⚡ Performance & Best Practices
+## Prerequisites
 
-* Streamlit data caching
-* Database-level aggregations
-* Strategic indexing
-* Avoids excessive database calls
-* Clear separation between **UI**, **API**, and **Data Layer**
+Before running the project, make sure you have:
+
+- Python 3.12 or later
+- PostgreSQL installed and running
+- Git
+- `psql` command-line client
+- Raw dengue CSV files placed inside `data/raw/`
+
+Recommended:
+
+- A clean Python virtual environment
+- A PostgreSQL user with permission to create tables, indexes, and materialized views
 
 ---
 
-## 🔁 Migrations (Alembic)
+## Quick Start
 
-Adopted standard:
+Run all commands from the **project root** unless stated otherwise.
 
-* `revision`: random ID generated by Alembic
-* `down_revision`: explicit dependency reference
-* Descriptive migration file names
-
-Example:
+### 1. Clone the repository
 
 ```bash
-alembic revision -m "create materialized view dengue_by_age_gender"
+git clone https://github.com/my-python-projects/dengue-monitor.git
+cd dengue-monitor
 ```
 
-This approach ensures:
+### 2. Create and activate a virtual environment
 
-* Linear migration history
-* Schema reproducibility
-* Easy rollback
-
----
-
-## 🚀 How to Run
-
-### 1️⃣ Create virtual environment
+Linux/macOS:
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\Activate.ps1 # Windows
+source venv/bin/activate
 ```
 
-### 2️⃣ Install dependencies
+Windows PowerShell:
+
+```powershell
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Configure environment
+> The application builds the database URL using `postgresql+psycopg://...`, so the environment must include a PostgreSQL driver compatible with this SQLAlchemy URL.
+
+### 4. Configure environment variables
+
+Create a local `.env` file from `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Set the database environment variables.
+Windows PowerShell:
 
-### 4️⃣ Run migrations
+```powershell
+Copy-Item .env.example .env
+```
+
+Then update the database credentials:
+
+```env
+APP_NAME=Dengue Monitor
+ENV=development
+
+LOG_LEVEL=INFO
+LOG_FORMAT=TEXT
+LOG_TO_FILE=true
+LOG_DIR=logs
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=dengue_db
+DB_USER=dengue_user
+DB_PASSWORD=your_password
+
+OPENDATASUS_BASE_URL=https://apidadosabertos.saude.gov.br/arboviroses/dengue
+API_PAGE_SIZE=1000
+```
+
+> Do not commit your `.env` file. Keep only `.env.example` in the repository.
+
+### 5. Create the PostgreSQL database
+
+Connect to PostgreSQL using an admin user:
+
+```bash
+psql -U postgres
+```
+
+Then run:
+
+```sql
+CREATE DATABASE dengue_db;
+CREATE USER dengue_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE dengue_db TO dengue_user;
+```
+
+If your PostgreSQL version requires explicit schema privileges, connect to the database and run:
+
+```sql
+\c dengue_db
+GRANT USAGE, CREATE ON SCHEMA public TO dengue_user;
+```
+
+If you prefer to use an existing PostgreSQL user, create only the database and configure `.env` accordingly.
+
+### 6. Run database migrations
 
 ```bash
 alembic upgrade head
 ```
 
-### 5️⃣ Download the dengue CSV data
+This creates the main table, indexes, and materialized views used by the project.
 
-The project expects **raw dengue CSV files** to be placed in the following directory:
+### 7. Add raw dengue CSV files
 
-```text
-data/raw/
+Create the raw data folder if it does not exist:
+
+```bash
+mkdir -p data/raw
 ```
 
-> This directory is intentionally excluded from version control.
+Windows PowerShell:
 
-You can obtain the CSV files using **one of the following options**:
+```powershell
+New-Item -ItemType Directory -Force data/raw
+```
 
----
+Place files such as the following inside `data/raw/`:
 
-### 🔹 Option 1 — Google Drive (recommended for quick setup)
+```text
+data/raw/DENGBR24.csv
+data/raw/DENGBR25.csv
+```
 
-A curated set of CSV files is available on Google Drive:
+The pipeline looks for files matching:
 
-👉 [https://drive.google.com/drive/folders/1GY_LRvW4pQ0isSVTN_LyWAji-ixbTdw6?usp=sharing](https://drive.google.com/drive/folders/1GY_LRvW4pQ0isSVTN_LyWAji-ixbTdw6?usp=sharing)
+```text
+DENGBR*.csv
+```
 
-Steps:
+You can obtain the raw files from the Brazilian Health Open Data Portal:
 
-1. Download one or more CSV files from the Drive folder
-2. Create the directory if it does not exist:
+```text
+https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue
+```
 
-   ```text
-   data/raw/
-   ```
-3. Place the downloaded CSV files inside `data/raw/`
+### 8. Process and load the data
 
----
-
-### 🔹 Option 2 — Official Brazilian Health Open Data Portal (DATASUS)
-
-You can also download the data directly from the official source:
-
-👉 [https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue](https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue)
-
-Steps:
-
-1. Access the dataset page
-2. Download the desired CSV files (by year or period)
-3. Place the CSV files inside:
-
-   ```text
-   data/raw/
-   ```
-
----
-
-📌 **Notes**:
-
-* The ingestion pipeline supports **multiple CSV files** inside `data/raw/`
-* Files are processed sequentially
-* Only the required columns are loaded into the database
-* The data is normalized before insertion
-
-
-### 6️⃣ Process and load the data
-
-From the **data/** directory:
+Run this command from the **project root**, not from inside the `data/` folder:
 
 ```bash
 python -m data.process_data
 ```
 
-This script:
+This command reads the CSV files, applies sampling, normalizes selected fields, and inserts the processed records into PostgreSQL.
 
-* Reads the raw CSV
-* Applies sampling logic (100 records / month / UF)
-* Normalizes fields
-* Inserts data into PostgreSQL
+### 9. Refresh materialized views
 
-
-### 6️⃣.1️⃣ Refresh Materialized Views (required)
-
-After loading the data into PostgreSQL, you must refresh the materialized views used by the analytical queries and dashboards.
-
-You can do this in one of the following ways:
-
----
-
-### 🔹 Option 1 — Run refresh commands manually
-
-Connect to your PostgreSQL database and execute:
-
-```sql
-REFRESH MATERIALIZED VIEW mv_top_municipios;
-REFRESH MATERIALIZED VIEW mv_cases_heatmap_month_age;
-REFRESH MATERIALIZED VIEW mv_cases_by_age_group;
-REFRESH MATERIALIZED VIEW mv_cases_by_gender_age_group;
-```
-
----
-
-### 🔹 Option 2 — Run the provided SQL script (recommended)
-
-The project includes a helper script that refreshes all materialized views at once.
-
-From the project root, run:
+After loading or changing data, refresh the materialized views:
 
 ```bash
-psql -d <your_database_name> -f scripts/database/refresh_materialized_views.sql
+psql -d dengue_db -f scripts/database/refresh_materialized_views.sql
 ```
 
----
+If your database requires user/host options:
 
-📌 **Notes**:
+```bash
+psql -h localhost -U dengue_user -d dengue_db -f scripts/database/refresh_materialized_views.sql
+```
 
-* This step is required every time new data is loaded
-* Materialized views significantly improve dashboard performance
-* The script is safe to run multiple times
+### 10. Run the API and dashboard
 
-
-### 7️⃣ Start the FastAPI server
+Start the API:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API exposes analytical endpoints consumed by the dashboard.
+Open the API documentation:
 
-### 8️⃣ Start the dashboard
+```text
+http://127.0.0.1:8000/docs
+```
+
+In another terminal, with the virtual environment activated, start the dashboard:
 
 ```bash
 streamlit run dashboard/app.py
 ```
 
----
+Open:
 
-## 🤝 Contribution
-
-Contributions are welcome!
-
-1. Fork the project
-2. Create a branch (`feat/my-feature`)
-3. Commit following **Conventional Commits**
-4. Open a Pull Request
+```text
+http://localhost:8501
+```
 
 ---
 
-## 📄 License
+## Database
+
+### Main table
+
+The main table is:
+
+```text
+dengue_cases
+```
+
+It stores normalized dengue notification records.
+
+Important columns:
+
+| Column | Description |
+|---|---|
+| `nu_ano` | Epidemiological year |
+| `sg_uf_not` | Reporting state code |
+| `id_municip` | Municipality code |
+| `dt_notific` | Notification date |
+| `idade` | Normalized patient age |
+| `idade_unidade` | Age unit after parsing |
+| `cs_sexo` | Gender code |
+
+### Materialized views
+
+The project uses materialized views to speed up dashboard analytics.
+
+| View | Purpose |
+|---|---|
+| `mv_cases_by_age_group` | Cases grouped by year, state, gender, and age range |
+| `mv_cases_by_gender_age_group` | Cases grouped by gender and age range |
+| `mv_top_municipios` | Total cases by municipality |
+| `mv_cases_heatmap_month_age` | Cases by month and age range for heatmap visualization |
+
+Materialized views are created by Alembic migrations and refreshed with:
+
+```bash
+psql -d dengue_db -f scripts/database/refresh_materialized_views.sql
+```
+
+> Refresh the materialized views every time new data is loaded into `dengue_cases`.
+
+---
+
+## Raw Data and Sampling
+
+Raw CSV files are not versioned because they can be large.
+
+Expected location:
+
+```text
+data/raw/
+```
+
+Expected filename pattern:
+
+```text
+DENGBR*.csv
+```
+
+Example:
+
+```text
+data/raw/DENGBR24.csv
+data/raw/DENGBR25.csv
+```
+
+By default, the ingestion pipeline applies **stratified sampling** using this grouping:
+
+```text
+UF + epidemiological year + month
+```
+
+The default limit is:
+
+```text
+100 records per UF/year/month group
+```
+
+This behavior is defined in:
+
+```python
+run_pipeline(csv_path: str, max_per_group: int = 100)
+```
+
+Because sampling is enabled by default, the database does not necessarily contain all records from the original CSV files. This keeps local execution lighter and makes the dashboard easier to run on a personal machine.
+
+For full-volume analysis, adjust or remove the sampling logic in `data/process_data.py` and make sure PostgreSQL has enough resources for the full dataset.
+
+---
+
+## API Examples
+
+Start the API server before running the examples:
+
+```bash
+uvicorn main:app --reload
+```
+
+Base URL:
+
+```text
+http://127.0.0.1:8000
+```
+
+Interactive API documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### List dengue cases by state and year
+
+```http
+GET /dengue/cases?uf=MG&ano=2024
+```
+
+Example with month filter:
+
+```http
+GET /dengue/cases?uf=MG&ano=2024&mes=1
+```
+
+Example response:
+
+```json
+[
+  {
+    "ano": 2024,
+    "uf": {
+      "id": 31,
+      "sigla": "MG",
+      "nome": "Minas Gerais"
+    },
+    "municipio": {
+      "codigo": 310620,
+      "nome": "Belo Horizonte"
+    },
+    "casos": 123
+  }
+]
+```
+
+### Cases by month
+
+```http
+GET /dengue/cases/by-month?uf=MG&ano=2024
+```
+
+Example response:
+
+```json
+[
+  { "mes": 1, "casos": 150 },
+  { "mes": 2, "casos": 230 },
+  { "mes": 3, "casos": 310 }
+]
+```
+
+### Cases by age group
+
+```http
+GET /dengue/cases/by-age-group?uf=MG&ano=2024&mes=1
+```
+
+Example response:
+
+```json
+[
+  { "faixa_etaria": "0-9", "casos": 15 },
+  { "faixa_etaria": "10-19", "casos": 42 },
+  { "faixa_etaria": "20-29", "casos": 67 }
+]
+```
+
+### Cases by gender
+
+```http
+GET /dengue/cases/by-gender?uf=MG&ano=2024
+```
+
+Example with month filter:
+
+```http
+GET /dengue/cases/by-gender?uf=MG&ano=2024&mes=1
+```
+
+Example response:
+
+```json
+{
+  "masculino": 120,
+  "feminino": 150,
+  "ignorado": 5
+}
+```
+
+---
+
+## Dashboard
+
+Run the dashboard with:
+
+```bash
+streamlit run dashboard/app.py
+```
+
+The dashboard provides interactive visualizations for:
+
+- Cases by age group
+- Cases by gender
+- Top municipalities by number of cases
+- Heatmap by month and age group
+
+The dashboard uses cached analytical queries and materialized views to reduce repeated database work.
+
+---
+
+## Screenshots
+
+### Dashboard overview
+
+![Dashboard overview](docs/images/dashboard-overview.png)
+
+---
+
+### API documentation
+
+![API documentation](docs/images/api-docs.png)
+---
+
+## Useful Commands
+
+### Run migrations
+
+```bash
+alembic upgrade head
+```
+
+### Roll back the latest migration
+
+```bash
+alembic downgrade -1
+```
+
+### Process raw CSV files
+
+```bash
+python -m data.process_data
+```
+
+### Refresh materialized views
+
+```bash
+psql -d dengue_db -f scripts/database/refresh_materialized_views.sql
+```
+
+### Run API
+
+```bash
+uvicorn main:app --reload
+```
+
+### Run dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+### Check Python syntax
+
+```bash
+python -m compileall .
+```
+
+---
+
+## Troubleshooting
+
+### `ModuleNotFoundError`
+
+Make sure you are running commands from the project root and that the virtual environment is activated.
+
+Correct:
+
+```bash
+python -m data.process_data
+```
+
+from:
+
+```text
+dengue-monitor/
+```
+
+Avoid running this command from inside the `data/` folder.
+
+### Database connection error
+
+Check your `.env` database values and confirm that PostgreSQL is running and that the database exists.
+
+### Permission error when running migrations
+
+Make sure your PostgreSQL user has privileges on the database and public schema:
+
+```sql
+GRANT ALL PRIVILEGES ON DATABASE dengue_db TO dengue_user;
+GRANT USAGE, CREATE ON SCHEMA public TO dengue_user;
+```
+
+### Materialized views return no data
+
+After loading CSV files, refresh the materialized views:
+
+```bash
+psql -d dengue_db -f scripts/database/refresh_materialized_views.sql
+```
+
+### Raw CSV files not found
+
+Make sure the files are inside `data/raw/` and follow the expected `DENGBR*.csv` pattern.
+
+---
+
+## Roadmap
+
+Planned improvements:
+
+- Add automated tests
+- Add Docker and Docker Compose
+- Improve analytical query consistency with materialized views
+- Review logging configuration
+- Standardize project language, naming, and code organization
+
+---
+
+## License
 
 This project is distributed under the MIT License.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
-Project developed by **Jefferson** as an **advanced study and technical portfolio** in:
+Developed by **Jefferson** as a technical portfolio project focused on:
 
-* Data Engineering
-* Epidemiological Analysis
-* Analytical Visualization
+- Data Engineering
+- Python Backend Development
+- Epidemiological Analysis
+- Analytical Visualization
+- PostgreSQL and FastAPI
