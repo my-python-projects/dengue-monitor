@@ -6,7 +6,8 @@ fastapi
 uvicorn
 
 # Banco de dados
-psycopg2-binary
+psycopg[binary]
+SQLAlchemy
 
 # Migration
 alembic
