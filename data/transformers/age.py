@@ -1,23 +1,24 @@
-import pandas as pd
 from typing import Optional, Tuple
 
+import pandas as pd
 
-def parse_idade(value) -> Tuple[Optional[int], Optional[str]]:
+
+def parse_age(value) -> Tuple[Optional[int], Optional[str]]:
     """
-    Interpreta o campo nu_idade_n do SINAN (DATASUS).
+    Parse the SINAN (DATASUS) nu_idade_n field.
 
-    Formato: UAAA
-        U = unidade de tempo
-            1 = horas
-            2 = dias
-            3 = meses
-            4 = anos
-            9 = ignorado
-        AAA = valor da idade
+    Format: UAAA
+        U = time unit
+            1 = hours
+            2 = days
+            3 = months
+            4 = years
+            9 = unknown
+        AAA = age value
 
-    Exemplos:
-        3009 -> 9 meses
-        4018 -> 18 anos
+    Examples:
+        3009 -> 9 months
+        4018 -> 18 years
     """
     if pd.isna(value):
         return None, None
@@ -27,26 +28,26 @@ def parse_idade(value) -> Tuple[Optional[int], Optional[str]]:
     except (ValueError, TypeError):
         return None, None
 
-    unidade_code = value // 1000
-    idade = value % 1000
+    unit_code = value // 1000
+    age = value % 1000
 
-    if unidade_code == 9:
+    if unit_code == 9:
         return None, None
 
-    unidade_map = {
+    unit_map = {
         1: "horas",
         2: "dias",
         3: "meses",
         4: "anos",
     }
 
-    unidade = unidade_map.get(unidade_code)
+    unit = unit_map.get(unit_code)
 
-    if unidade is None:
+    if unit is None:
         return None, None
 
-    # validações básicas
-    if idade <= 0:
+    # Basic validations
+    if age <= 0:
         return None, None
 
-    return idade, unidade
+    return age, unit

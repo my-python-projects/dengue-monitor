@@ -1,33 +1,22 @@
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+
 from core.models import DengueCase
 
-def get_cases_by_uf_and_year(
-    db: Session,
-    uf: int,
-    ano: int,
-    mes: int | None = None
-):  
-    query = (
-        db.query(
-            DengueCase.nu_ano.label("ano"),
-            DengueCase.sg_uf_not.label("uf"),
-            DengueCase.id_municip.label("municipio"),
-            func.count(DengueCase.id).label("casos")
-        )
-        .filter(
-            DengueCase.sg_uf_not == uf,
-            DengueCase.nu_ano == ano
-        )
-    )
+
+def get_cases_by_uf_and_year(db: Session, uf: int, ano: int, mes: int | None = None):
+    query = db.query(
+        DengueCase.nu_ano.label("ano"),
+        DengueCase.sg_uf_not.label("uf"),
+        DengueCase.id_municip.label("municipio"),
+        func.count(DengueCase.id).label("casos"),
+    ).filter(DengueCase.sg_uf_not == uf, DengueCase.nu_ano == ano)
 
     if mes is not None:
-        query = query.filter(func.extract('month', DengueCase.dt_notific) == mes)
+        query = query.filter(func.extract("month", DengueCase.dt_notific) == mes)
 
     return query.group_by(
-        DengueCase.nu_ano,
-        DengueCase.sg_uf_not,
-        DengueCase.id_municip
+        DengueCase.nu_ano, DengueCase.sg_uf_not, DengueCase.id_municip
     ).all()
 
 
@@ -35,20 +24,25 @@ def get_cases_by_month(db: Session, uf_code: int, ano: int):
     return (
         db.query(
             func.extract("month", DengueCase.dt_notific).label("mes"),
-            func.count(DengueCase.id).label("casos")
+            func.count(DengueCase.id).label("casos"),
         )
         .filter(
             DengueCase.sg_uf_not == uf_code,
             DengueCase.nu_ano == ano,
-            DengueCase.dt_notific.isnot(None)
+            DengueCase.dt_notific.isnot(None),
         )
         .group_by(func.extract("month", DengueCase.dt_notific))
         .order_by("mes")
         .all()
-    )  
+    )
 
 
-def get_cases_by_age_group(db: Session, uf_code: int | None = None, ano: int | None = None, mes: int | None = None):
+def get_cases_by_age_group(
+    db: Session,
+    uf_code: int | None = None,
+    ano: int | None = None,
+    mes: int | None = None,
+):
     query = db.query(DengueCase.id, DengueCase.idade)
 
     # Filtros opcionais
@@ -59,25 +53,26 @@ def get_cases_by_age_group(db: Session, uf_code: int | None = None, ano: int | N
     if mes is not None:
         query = query.filter(func.extract("month", DengueCase.dt_notific) == mes)
 
-    # Excluir idades nulas ou inválidas
+    # Exclude null or invalid ages
     query = query.filter(DengueCase.idade.isnot(None), DengueCase.idade >= 0)
 
     subq = query.subquery()
 
-    # Agrupar por faixa etária
     age_group = (subq.c.idade // 10).label("grupo")
     return (
-        db.query(
-            age_group,
-            func.count().label("casos")
-        )
+        db.query(age_group, func.count().label("casos"))
         .group_by(age_group)
         .order_by(age_group)
         .all()
     )
 
 
-def get_cases_by_gender(db: Session, uf_code: int | None = None, ano: int | None = None, mes: int | None = None):
+def get_cases_by_gender(
+    db: Session,
+    uf_code: int | None = None,
+    ano: int | None = None,
+    mes: int | None = None,
+):
 
     stmt = db.query(DengueCase.cs_sexo)
 
@@ -93,7 +88,12 @@ def get_cases_by_gender(db: Session, uf_code: int | None = None, ano: int | None
     result = db.query(
         func.sum(case((subq.c.cs_sexo == "M", 1), else_=0)).label("masculino"),
         func.sum(case((subq.c.cs_sexo == "F", 1), else_=0)).label("feminino"),
-        func.sum(case((subq.c.cs_sexo.is_(None) | (subq.c.cs_sexo.notin_(["M", "F"])), 1), else_=0)).label("ignorado")
+        func.sum(
+            case(
+                (subq.c.cs_sexo.is_(None) | (subq.c.cs_sexo.notin_(["M", "F"])), 1),
+                else_=0,
+            )
+        ).label("ignorado"),
     ).select_from(subq)
 
     return result.first()

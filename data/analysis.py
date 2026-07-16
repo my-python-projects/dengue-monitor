@@ -1,14 +1,14 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 from sqlalchemy import text
-from infra.database import engine
+
 from data.lookups.loader import load_municipios
+from infra.database import engine
+
 
 @st.cache_data(ttl=600)
 def cases_by_age_group_df(
-    uf: int | None = None,
-    ano: int | None = None,
-    sexo: str | None = None
+    uf: int | None = None, ano: int | None = None, sexo: str | None = None
 ) -> pd.DataFrame:
 
     query = """
@@ -93,13 +93,14 @@ def cases_by_gender_df(
     with engine.connect() as conn:
         df = pd.read_sql(text(query), conn, params=params)
 
-    df["genero"] = df["cs_sexo"].map({
-        "M": "Masculino",
-        "F": "Feminino",
-        "I": "Ignorado"
-    }).fillna("Outros")
+    df["genero"] = (
+        df["cs_sexo"]
+        .map({"M": "Masculino", "F": "Feminino", "I": "Ignorado"})
+        .fillna("Outros")
+    )
 
     return df[["genero", "casos"]]
+
 
 @st.cache_data(ttl=600)
 def cases_top_municipios_df(uf: int, ano: int, limit: int = 10) -> pd.DataFrame:
@@ -116,9 +117,7 @@ def cases_top_municipios_df(uf: int, ano: int, limit: int = 10) -> pd.DataFrame:
 
     with engine.connect() as conn:
         df = pd.read_sql(
-            text(query),
-            conn,
-            params={"uf": uf, "ano": ano, "limit": limit}
+            text(query), conn, params={"uf": uf, "ano": ano, "limit": limit}
         )
 
     municipios_lookup = load_municipios()
@@ -132,8 +131,7 @@ def cases_top_municipios_df(uf: int, ano: int, limit: int = 10) -> pd.DataFrame:
 
 @st.cache_data(ttl=600)
 def cases_heatmap_month_age_df(
-    uf: int | None = None,
-    ano: int | None = None
+    uf: int | None = None, ano: int | None = None
 ) -> pd.DataFrame:
 
     query = """

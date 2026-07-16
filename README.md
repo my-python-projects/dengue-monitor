@@ -13,6 +13,7 @@ The main goal is to demonstrate practical skills in:
 - Dashboard development with Streamlit and Plotly
 - Query optimization with materialized views
 - Reproducible local project setup
+- Code quality with Black and Ruff
 
 ---
 
@@ -30,6 +31,7 @@ The main goal is to demonstrate practical skills in:
 - [Dashboard](#dashboard)
 - [Screenshots](#screenshots)
 - [Useful Commands](#useful-commands)
+- [Development](#development)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -116,6 +118,12 @@ The project is designed to keep local execution lightweight while still working 
 - Indexes
 - Aggregated analytical queries
 
+### Development and Code Quality
+
+- Black
+- Ruff
+- Pytest
+
 ---
 
 ## Project Structure
@@ -124,7 +132,7 @@ The project is designed to keep local execution lightweight while still working 
 dengue-monitor/
 │
 ├── alembic/
-│   ├── versions/                    # Database migrations
+│   ├── versions/                     # Database migrations
 │   ├── env.py
 │   └── script.py.mako
 │
@@ -158,6 +166,11 @@ dengue-monitor/
 │   ├── process_data.py               # CSV ingestion and normalization pipeline
 │   └── __init__.py
 │
+├── docs/
+│   └── images/
+│       ├── dashboard-overview.png    # Dashboard screenshot
+│       └── api-docs.png              # FastAPI documentation screenshot
+│
 ├── infra/
 │   ├── config.py                     # Environment-based settings
 │   ├── database.py                   # SQLAlchemy engine/session setup
@@ -178,11 +191,15 @@ dengue-monitor/
 ├── alembic.ini
 ├── .env.example
 ├── .gitignore
-├── requirements.txt
+├── CONTRIBUTING.md                   # Project conventions and contribution guide
+├── LICENSE
+├── pyproject.toml                    # Black and Ruff configuration
+├── requirements.txt                  # Runtime dependencies
+├── requirements-dev.txt              # Development dependencies
 └── README.md
 ```
 
-> Local-only folders and files such as `venv/`, `.env`, `logs/`, `__pycache__/`, and raw CSV files should not be committed to version control.
+> Local-only folders and files such as `venv/`, `.env`, `logs/`, `__pycache__/`, `.ruff_cache/`, `.pytest_cache/`, and raw CSV files should not be committed to version control.
 
 ---
 
@@ -232,9 +249,19 @@ venv\Scripts\Activate.ps1
 
 ### 3. Install dependencies
 
+For running the project locally, install the runtime dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
+
+If you want to develop, test, format, or lint the project, install the development dependencies instead:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+`requirements-dev.txt` includes the runtime dependencies from `requirements.txt` and adds development tools such as Black, Ruff, and Pytest.
 
 > The application builds the database URL using `postgresql+psycopg://...`, so the environment must include a PostgreSQL driver compatible with this SQLAlchemy URL.
 
@@ -266,7 +293,7 @@ LOG_DIR=logs
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=dengue_db
-DB_USER=dengue_user
+DB_USER=your_user
 DB_PASSWORD=your_password
 
 OPENDATASUS_BASE_URL=https://apidadosabertos.saude.gov.br/arboviroses/dengue
@@ -623,6 +650,7 @@ The dashboard uses cached analytical queries and materialized views to reduce re
 ### API documentation
 
 ![API documentation](docs/images/api-docs.png)
+
 ---
 
 ## Useful Commands
@@ -666,6 +694,44 @@ streamlit run dashboard/app.py
 ### Check Python syntax
 
 ```bash
+python -m compileall .
+```
+
+---
+
+## Development
+
+Project conventions, naming standards, and contribution guidelines are documented in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+### Install development dependencies
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Format code with Black
+
+```bash
+black .
+```
+
+### Run Ruff checks
+
+```bash
+ruff check .
+```
+
+### Check Python syntax
+
+```bash
+python -m compileall .
+```
+
+Before opening a pull request, run:
+
+```bash
+black --check .
+ruff check .
 python -m compileall .
 ```
 
@@ -726,7 +792,6 @@ Planned improvements:
 - Add Docker and Docker Compose
 - Improve analytical query consistency with materialized views
 - Review logging configuration
-- Standardize project language, naming, and code organization
 
 ---
 
