@@ -1,17 +1,18 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
-from alembic import context
-import os
 from urllib.parse import quote_plus
+
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 from infra.config import Settings
 
 # ======================================================
-# Importa Base dos models da aplicação
+# Import the Base class from the application models
 # ======================================================
 from infra.database import Base  # noqa
 
 # ======================================================
-# Configuração principal do Alembic
+# Main Alembic configuration
 # ======================================================
 config = context.config
 
@@ -22,17 +23,17 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # ======================================================
-# Metadata para autogenerate
+# Metadata autogenerate
 # ======================================================
 target_metadata = Base.metadata
 
 # ======================================================
-# Monta DATABASE_URL a partir do .env (BLINDADO)
+# Build DATABASE_URL from environment variables
 # ======================================================
 DB_USER = quote_plus(Settings.DB_USER)
 DB_PASSWORD = quote_plus(Settings.DB_PASSWORD)
 
-# Sobrescreve alembic.ini
+# Override alembic.ini configuration
 config.set_main_option("sqlalchemy.url", Settings.DATABASE_URL)
 
 
@@ -78,7 +79,7 @@ def run_migrations_online() -> None:
 
 
 # ======================================================
-# Seleção do modo de execução
+# Select the execution mode
 # ======================================================
 if context.is_offline_mode():
     run_migrations_offline()

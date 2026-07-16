@@ -1,9 +1,5 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Date
-)
+from sqlalchemy import Column, Date, Integer, String
+
 from infra.database import Base
 
 
@@ -13,16 +9,16 @@ class DengueCase(Base):
     id = Column(Integer, primary_key=True)
 
     # =========================
-    # Identificação da notificação
+    # Notification identification
     # =========================
-    tp_not = Column(Integer, nullable=False)          # Tipo de notificação
-    id_agravo = Column(String(5), nullable=False)       # CID-10
-    dt_notific = Column(Date, nullable=False)           # Data da notificação
+    tp_not = Column(Integer, nullable=False)  # Notification type
+    id_agravo = Column(String(5), nullable=False)  # CID-10
+    dt_notific = Column(Date, nullable=False)  # Notification date
     sem_not = Column(Integer)
     nu_ano = Column(Integer, nullable=False)
 
     # =========================
-    # Local da notificação
+    # Notification location
     # =========================
     sg_uf_not = Column(Integer, nullable=False)
     id_municip = Column(Integer, nullable=False)
@@ -30,17 +26,17 @@ class DengueCase(Base):
     id_unidade = Column(Integer)
 
     # =========================
-    # Dados clínicos
+    # Clinical data
     # =========================
     dt_sin_pri = Column(Date, nullable=False)
     sem_pri = Column(Integer)
 
     # =========================
-    # Dados do paciente
+    # Patient data
     # =========================
     ano_nasc = Column(Integer)
     idade = Column(Integer)
-    idade_unidade = Column(String(10))  # hora, dia, mes, ano
+    idade_unidade = Column(String(10))  # hour, day, month, year
 
     cs_sexo = Column(String(1), nullable=False)
     cs_gestant = Column(Integer)
@@ -48,7 +44,7 @@ class DengueCase(Base):
     cs_escol_n = Column(Integer)
 
     # =========================
-    # Residência
+    # Residence
     # =========================
     sg_uf = Column(Integer)
     id_mn_resi = Column(Integer)
@@ -56,6 +52,6 @@ class DengueCase(Base):
     id_pais = Column(Integer)
 
     # =========================
-    # Investigação
+    # Investigation
     # =========================
     dt_invest = Column(Date)
