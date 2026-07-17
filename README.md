@@ -286,7 +286,6 @@ APP_NAME=Dengue Monitor
 ENV=development
 
 LOG_LEVEL=INFO
-LOG_FORMAT=TEXT
 LOG_TO_FILE=true
 LOG_DIR=logs
 
