@@ -22,5 +22,17 @@ class Settings:
 
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     LOG_DIR = os.getenv("LOG_DIR", "logs")
-    LOG_TO_FILE = os.getenv("LOG_TO_FILE", "true").lower() == "true"
-    LOG_FORMAT = os.getenv("LOG_FORMAT", "TEXT")
+
+    LOG_TO_CONSOLE = os.getenv("LOG_TO_CONSOLE", "true").lower() == "true"
+    LOG_TO_FILE = os.getenv("LOG_TO_FILE", "false").lower() == "true"
+    # LOG_FORMAT = os.getenv("LOG_FORMAT", "TEXT")
+
+    SQLALCHEMY_LOG_LEVEL = os.getenv(
+        "SQLALCHEMY_LOG_LEVEL",
+        "WARNING",
+    ).upper()
+
+    UVICORN_LOG_LEVEL = os.getenv(
+        "UVICORN_LOG_LEVEL",
+        "INFO",
+    ).upper()

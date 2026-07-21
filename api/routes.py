@@ -49,7 +49,17 @@ def list_cases(
             detail="Internal error while querying data",
         ) from exc
 
-    result = __map_cases(uf, rows)
+    result = _map_cases(uf, rows)
+
+    logger.info(
+        "Dengue cases query completed",
+        extra={
+            "uf": uf,
+            "ano": ano,
+            "mes": mes,
+            "total_registros": len(result),
+        },
+    )
 
     return result
 
@@ -64,7 +74,7 @@ def _convert_uf_to_code(uf):
     return uf_code
 
 
-def __map_cases(uf, rows):
+def _map_cases(uf, rows):
     result = []
 
     for row in rows:
@@ -87,8 +97,6 @@ def __map_cases(uf, rows):
             }
         )
 
-    logger.info("Query completed successfully", extra={"total_registros": len(result)})
-
     return result
 
 
@@ -98,13 +106,46 @@ def list_cases_by_month(
     ano: int = Query(..., ge=2000, le=2030),
     db: Session = Depends(get_db),
 ):
+    logger.info(
+        "Querying cases by month",
+        extra={"uf": uf, "ano": ano},
+    )
+
     uf_code = translate_uf(uf)
+
     if uf_code is None:
+        logger.warning(
+            "Invalid state code provided",
+            extra={"uf": uf, "ano": ano},
+        )
         return []
 
-    rows = get_cases_by_month(db, uf_code, ano)
+    try:
+        rows = get_cases_by_month(db, uf_code, ano)
+    except SQLAlchemyError as exc:
+        logger.exception(
+            "Error querying cases by month",
+            extra={"uf": uf, "ano": ano},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error while querying data",
+        ) from exc
 
-    return [{"mes": row.mes, "casos": row.casos} for row in rows if row.mes is not None]
+    result = [
+        {"mes": row.mes, "casos": row.casos} for row in rows if row.mes is not None
+    ]
+
+    logger.info(
+        "Cases by month query completed",
+        extra={
+            "uf": uf,
+            "ano": ano,
+            "total_registros": len(result),
+        },
+    )
+
+    return result
 
 
 def format_age_group(grupo: int) -> str:
@@ -139,7 +180,15 @@ def list_cases_by_age_group(
 
     result = _map_age_group(rows)
 
-    logger.info("Query completed", extra={"total_registros": len(result)})
+    logger.info(
+        "Query completed successfully",
+        extra={
+            "uf": uf,
+            "ano": ano,
+            "mes": mes,
+            "total_registros": len(result),
+        },
+    )
 
     return result
 
@@ -161,17 +210,53 @@ def list_cases_by_gender(
     mes: int | None = Query(None, ge=1, le=12),
     db: Session = Depends(get_db),
 ):
+    logger.info(
+        "Querying cases by gender",
+        extra={"uf": uf, "ano": ano, "mes": mes},
+    )
+
     uf_code = None
+
     if uf:
         uf_code = translate_uf(uf)
+
         if uf_code is None:
-            # Invalid state code → return zeros
-            return {"masculino": 0, "feminino": 0, "ignorado": 0}
+            logger.warning(
+                "Invalid state code provided",
+                extra={"uf": uf, "ano": ano, "mes": mes},
+            )
+            return {
+                "masculino": 0,
+                "feminino": 0,
+                "ignorado": 0,
+            }
 
-    row = get_cases_by_gender(db, uf_code, ano, mes)
+    try:
+        row = get_cases_by_gender(db, uf_code, ano, mes)
+    except SQLAlchemyError as exc:
+        logger.exception(
+            "Error querying cases by gender",
+            extra={"uf": uf, "ano": ano, "mes": mes},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error while querying data",
+        ) from exc
 
-    return {
+    result = {
         "masculino": int(row.masculino or 0),
         "feminino": int(row.feminino or 0),
         "ignorado": int(row.ignorado or 0),
     }
+
+    logger.info(
+        "Cases by gender query completed",
+        extra={
+            "uf": uf,
+            "ano": ano,
+            "mes": mes,
+            "total_registros": sum(result.values()),
+        },
+    )
+
+    return result
