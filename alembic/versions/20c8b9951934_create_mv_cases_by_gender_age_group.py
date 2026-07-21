@@ -5,15 +5,14 @@ Revises: 16aa33840134
 Create Date: 2026-01-13 14:18:14.365616
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
-revision: str = '20c8b9951934'
-down_revision: Union[str, Sequence[str], None] = '16aa33840134'
+revision: str = "20c8b9951934"
+down_revision: Union[str, Sequence[str], None] = "16aa33840134"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -38,11 +37,12 @@ def upgrade():
     op.create_index(
         "ix_mv_by_gender_age_group_main",
         "mv_cases_by_gender_age_group",
-        ["nu_ano", "sg_uf_not", "sexo"]
+        ["nu_ano", "sg_uf_not", "sexo"],
     )
 
 
 def downgrade():
-    op.drop_index("ix_mv_by_gender_age_group_main", table_name="mv_cases_by_gender_age_group")
+    op.drop_index(
+        "ix_mv_by_gender_age_group_main", table_name="mv_cases_by_gender_age_group"
+    )
     op.execute("DROP MATERIALIZED VIEW mv_cases_by_gender_age_group")
-

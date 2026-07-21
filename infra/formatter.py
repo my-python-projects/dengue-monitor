@@ -1,5 +1,6 @@
 import logging
 
+
 class SafeFormatter(logging.Formatter):
     def format(self, record):
 

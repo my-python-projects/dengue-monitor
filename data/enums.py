@@ -1,8 +1,4 @@
-SEXO_MAP = {
-    "M": "Masculino",
-    "F": "Feminino",
-    "I": "Ignorado"
-}
+SEXO_MAP = {"M": "Masculino", "F": "Feminino", "I": "Ignorado"}
 
 RACA_MAP = {
     "1": "Branca",
@@ -10,7 +6,7 @@ RACA_MAP = {
     "3": "Amarela",
     "4": "Parda",
     "5": "Indígena",
-    "9": "Ignorado"
+    "9": "Ignorado",
 }
 
 GESTANTE_MAP = {
@@ -20,12 +16,7 @@ GESTANTE_MAP = {
     "4": "Idade gestacional ignorada",
     "5": "Não",
     "6": "Não se aplica",
-    "9": "Ignorado"
+    "9": "Ignorado",
 }
 
-TIPO_NOT_MAP = {
-    "1": "Negativa",
-    "2": "Individual",
-    "3": "Surto",
-    "4": "Agregado"
-}
+TIPO_NOT_MAP = {"1": "Negativa", "2": "Individual", "3": "Surto", "4": "Agregado"}

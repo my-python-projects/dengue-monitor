@@ -5,16 +5,17 @@ dotenv
 fastapi
 uvicorn
 
-# Banco de dados
-psycopg2-binary
+# Data Base
+psycopg[binary]
+SQLAlchemy
 
 # Migration
 alembic
 
-# Análise e tratamento de dados
+# Data analysis and processing
 pandas
 
-# Visualização de dados
+# Data visualization
 matplotlib
 seaborn
 plotly

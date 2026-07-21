@@ -16,9 +16,8 @@ def load_ufs():
         by_id[str(uf["id"])] = uf
         by_sigla[uf["sigla"]] = uf
         # by_name[uf["nome"]] = uf
-        
 
-    return by_id , by_sigla 
+    return by_id, by_sigla
 
 
 def load_municipios():
@@ -27,9 +26,9 @@ def load_municipios():
 
     municipios_by_6digits = {}
     for m in data:
-        codigo_7 = str(m["id"])          # ex: "3106207"
+        codigo_7 = str(m["id"])  # ex: "3106207"
         if len(codigo_7) == 7:
-            codigo_6 = codigo_7[:6]      # ex: "310620"
+            codigo_6 = codigo_7[:6]  # ex: "310620"
             municipios_by_6digits[codigo_6] = m
         else:
             # Caso raro: código não tem 7 dígitos → use como está
